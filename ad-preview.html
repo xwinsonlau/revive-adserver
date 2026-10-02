@@ -41,8 +41,31 @@
     border: 1px solid #e5e7eb;
     border-radius: 8px;
     overflow: hidden;
-    line-height: 0;
     max-width: 100%;
+    text-align: center;
+  }
+  /* Revive's generated markup has no styling hooks of its own — this is
+     all on us. display:block removes the default inline-image whitespace
+     gap; the rest styles the "text below banner" link Revive outputs as a
+     bare, unstyled <a> tag. */
+  .ad-frame-wrap img,
+  .ad-frame-wrap iframe {
+    display: block;
+    max-width: 100%;
+    margin: 0 auto;
+  }
+  .ad-frame-wrap a {
+    color: #2563eb;
+    text-decoration: none;
+  }
+  .ad-frame-wrap a:hover {
+    text-decoration: underline;
+  }
+  .ad-frame-wrap br + a {
+    display: inline-block;
+    padding: 10px 0;
+    font-size: 13px;
+    font-weight: 600;
   }
   .controls {
     margin-top: 16px;
@@ -71,12 +94,25 @@
 <body>
   <div class="card">
     <h1>Revive Adserver — Zone 1 Preview</h1>
-    <p class="meta">Serving from <code>http://localhost:8080</code> &middot; iframe invocation tag &middot; zone 1</p>
+    <p class="meta">Serving from <code>http://localhost:8080</code> &middot; JavaScript invocation tag &middot; zone 1</p>
 
     <div class="ad-frame-wrap">
-      <iframe id="a4943d99" name="a4943d99" src="" frameborder="0" scrolling="no" width="1350" height="488" allow="autoplay">
-        <a href="" target="_blank"><img src="" border="0" alt="" /></a>
-      </iframe>
+      <!-- Revive Adserver Javascript Tag - Generated with Revive Adserver v6.0.8 -->
+      <script type='text/javascript'><!--//<![CDATA[
+         var m3_u = (location.protocol=='https:'?'https://localhost:8080/www/delivery/ajs.php':'http://localhost:8080/www/delivery/ajs.php');
+         var m3_r = Math.floor(Math.random()*99999999999);
+         if (!document.MAX_used) document.MAX_used = ',';
+         document.write ("<scr"+"ipt type='text/javascript' src='"+m3_u);
+         document.write ("?zoneid=1");
+         document.write ('&amp;cb=' + m3_r);
+         document.write ("&amp;withtext=1");
+         if (document.MAX_used != ',') document.write ("&amp;exclude=" + document.MAX_used);
+         document.write (document.charset ? '&amp;charset='+document.charset : (document.characterSet ? '&amp;charset='+document.characterSet : ''));
+         document.write ("&amp;loc=" + encodeURIComponent(window.location));
+         if (document.referrer) document.write ("&amp;referer=" + encodeURIComponent(document.referrer));
+         if (document.context) document.write ("&context=" + encodeURIComponent(document.context));
+         document.write ("'><\/scr"+"ipt>");
+      //]]>--></script><noscript><a href='http://localhost:8080/www/delivery/ck.php?n=a6836536&amp;cb=0' target='_blank'><img src='http://localhost:8080/www/delivery/avw.php?zoneid=1&amp;cb=0&amp;n=a6836536' border='0' alt='' /></a></noscript>
     </div>
 
     <div class="controls">
@@ -86,31 +122,12 @@
   </div>
 
   <script>
-    (function () {
-      var ZONE_ID = 1;
-      var HOST = 'http://localhost:8080'; // plain HTTP — this Docker setup doesn't terminate TLS on 8080
-      var N = 'a82f54ce';
-
-      var iframe = document.getElementById('a4943d99');
-      var fallbackLink = iframe.querySelector('a');
-      var fallbackImg = iframe.querySelector('img');
-      var status = document.getElementById('status');
-
-      function randomCacheBuster() {
-        return Date.now() + '' + Math.floor(Math.random() * 100000);
-      }
-
-      function load() {
-        var cb = randomCacheBuster();
-        iframe.src = HOST + '/www/delivery/afr.php?zoneid=' + ZONE_ID + '&cb=' + cb;
-        fallbackLink.href = HOST + '/www/delivery/ck.php?n=' + N + '&cb=' + cb;
-        fallbackImg.src = HOST + '/www/delivery/avw.php?zoneid=' + ZONE_ID + '&cb=' + cb + '&n=' + N;
-        status.textContent = 'Loaded at ' + new Date().toLocaleTimeString();
-      }
-
-      document.getElementById('reload-btn').addEventListener('click', load);
-      load();
-    })();
+    document.getElementById('reload-btn').addEventListener('click', function () {
+      // The JS tag calls document.write, which only works during the initial
+      // page parse — reloading the page is the correct way to re-roll it.
+      location.reload();
+    });
+    document.getElementById('status').textContent = 'Loaded at ' + new Date().toLocaleTimeString();
   </script>
 </body>
 </html>
