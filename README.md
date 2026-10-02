@@ -3,7 +3,9 @@
 Runs [Revive Adserver](https://www.revive-adserver.com/) 6.0.8 locally via
 Docker Compose: Apache + PHP 8.1 for the app, MySQL 8 for the database. The
 included CLI installer runs automatically on first boot, so there's no
-manual web-wizard step.
+manual web-wizard step. A background `maintenance` service also runs
+Revive's Priority Engine on a timer, which real ad delivery depends on (see
+[Why is delivery returning a blank pixel?](#why-is-delivery-returning-a-blank-pixel)).
 
 ## Prerequisites
 
@@ -130,17 +132,50 @@ show up as changes in `git status` either way.)
 - **Changed `.env` but nothing changed in the app** — the installer only
   runs once per install; follow [Resetting from scratch](#resetting-from-scratch).
 
+### Why is delivery returning a blank pixel?
+
+If you set up a zone and banner in the admin UI and hit the delivery URL
+(e.g. `www/delivery/avw.php?zoneid=1`) but get back a 1×1 transparent GIF
+instead of your creative, this is expected for a little while and isn't a
+bug in this setup — it's how Revive works:
+
+- Revive doesn't decide what to serve purely from the live campaign/banner
+  tables. A separate **Priority Engine** pre-computes a delivery weight per
+  ad-zone pairing, and a brand new link starts at weight `0` (never
+  delivered) until that engine runs at least once.
+- The `maintenance` service in `docker-compose.yml` runs exactly that
+  engine (`php scripts/maintenance/maintenance.php localhost`) on a loop,
+  every `MAINTENANCE_INTERVAL` seconds (default **300** — 5 minutes).
+- Separately, Revive caches "which ads are linked to this zone" to disk
+  for 20 minutes (`cacheExpire` in its config) and does **not** invalidate
+  that cache when you link a banner via the admin UI. So even once the
+  priority is fixed, a stale empty result can keep being served until that
+  cache entry expires.
+
+**If you just linked a banner to a zone and want to test immediately**
+instead of waiting:
+
+```bash
+docker compose exec web php scripts/maintenance/maintenance.php localhost
+rm -f revive-adserver-6.0.8/var/cache/deliverycache_*.php
+```
+
+Then re-request the delivery URL — it should return the real creative.
+
 ## What's in this repo
 
-- `docker-compose.yml` — the `db` (MySQL 8) and `web` (Apache/PHP 8.1)
-  services.
+- `docker-compose.yml` — the `db` (MySQL 8), `web` (Apache/PHP 8.1), and
+  `maintenance` (Priority Engine loop) services.
 - `docker/Dockerfile` — PHP 8.1 + Apache image with the extensions Revive
-  requires (`intl`, `zip`, `mysqli`, `gd`, `opcache`).
+  requires (`intl`, `zip`, `mysqli`, `gd`, `opcache`); used to build both
+  `web` and `maintenance`.
 - `docker/apache-vhost.conf` — Apache vhost config (DocumentRoot +
   `AllowOverride All` so Revive's own `.htaccess` files protect `lib/`,
   `var/`, `etc/`, `plugins/`).
 - `docker/entrypoint.sh` — waits for the database, runs Revive's CLI
-  installer on first boot, then starts Apache.
+  installer on first boot, then starts Apache. Used by `web`.
+- `docker/maintenance-loop.sh` — waits for the database, then runs
+  Revive's Priority Engine on a loop. Used by `maintenance`.
 - `revive-adserver-6.0.8/` — the Revive Adserver application source,
-  bind-mounted (not copied) into the `web` container, so edits here are
+  bind-mounted (not copied) into the containers, so edits here are
   reflected live and the folder stays easy to upgrade.

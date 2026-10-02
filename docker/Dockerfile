@@ -16,7 +16,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY apache-vhost.conf /etc/apache2/sites-available/000-default.conf
 
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
-RUN chmod +x /usr/local/bin/entrypoint.sh
+COPY maintenance-loop.sh /usr/local/bin/maintenance-loop.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh /usr/local/bin/maintenance-loop.sh
 
 ENTRYPOINT ["entrypoint.sh"]
 CMD ["apache2-foreground"]

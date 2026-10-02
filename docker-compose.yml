@@ -37,5 +37,20 @@ services:
     volumes:
       - ./revive-adserver-6.0.8:/var/www/html
 
+  maintenance:
+    build:
+      context: ./docker
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    entrypoint: ["maintenance-loop.sh"]
+    environment:
+      DB_HOST: db
+      DB_PORT: 3306
+      MAINTENANCE_INTERVAL: 300
+    volumes:
+      - ./revive-adserver-6.0.8:/var/www/html
+
 volumes:
   db_data:
